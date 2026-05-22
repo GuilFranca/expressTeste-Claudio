@@ -6,6 +6,7 @@ let usuarios = [
   { id: 1, nome: 'Ana', email: 'ana@email.com' },
   { id: 2, nome: 'Bruno', email: 'bruno@email.com' },
 ];
+
 let nextId = 3;
 
 app.get('/usuarios', (req, res) => {
@@ -20,7 +21,7 @@ app.get('/usuarios/:id', (req, res) => {
 
 app.post('/usuarios', (req, res) => {
   const { nome, email } = req.body;
-  const novoUsuario = { id: nextId++, nome, email };
+  const novoUsuario = usuarios.push({ id: nextId++, nome, email });
   usuarios.push(novoUsuario);
   res.status(201).json(novoUsuario);
 });
