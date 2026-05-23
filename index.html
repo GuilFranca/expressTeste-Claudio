@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gerenciador de Usuários</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #16161a;
+      --surface2: #1e1e24;
+      --border: #2a2a35;
+      --accent: #7fff6e;
+      --accent2: #6ee8ff;
+      --danger: #ff6e6e;
+      --warn: #ffd56e;
+      --text: #f0f0f5;
+      --muted: #6b6b80;
+      --radius: 12px;
+    }
+
+    html { font-size: 16px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(127,255,110,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(127,255,110,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* Header */
+    header { margin-bottom: 48px; }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 3px 10px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+      color: var(--text);
+    }
+    h1 span { color: var(--accent); }
+    .subtitle { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+    /* Status bar */
+    .status-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 16px;
+      margin-bottom: 32px; font-size: 13px;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0;
+      transition: background .3s;
+    }
+    .dot.online { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .dot.error { background: var(--danger); }
+    #status-text { color: var(--muted); }
+
+    /* Layout */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: #3a3a48; }
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .method {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+    }
+    .get { background: rgba(127,255,110,.12); color: var(--accent); border: 1px solid rgba(127,255,110,.25); }
+    .post { background: rgba(110,232,255,.12); color: var(--accent2); border: 1px solid rgba(110,232,255,.25); }
+    .put { background: rgba(255,213,110,.12); color: var(--warn); border: 1px solid rgba(255,213,110,.25); }
+    .delete { background: rgba(255,110,110,.12); color: var(--danger); border: 1px solid rgba(255,110,110,.25); }
+
+    /* Form inputs */
+    .field { margin-bottom: 12px; }
+    label { display: block; font-size: 11px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+    input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+
+    /* Buttons */
+    button {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    button:active { transform: scale(.97); }
+    button:hover { opacity: .85; }
+    .btn-accent { background: var(--accent); color: #0d0d0f; }
+    .btn-blue { background: var(--accent2); color: #0d0d0f; }
+    .btn-warn { background: var(--warn); color: #0d0d0f; }
+    .btn-danger { background: var(--danger); color: #0d0d0f; }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    /* Full width card */
+    .card-full { grid-column: 1 / -1; }
+
+    /* Tabela de usuários */
+    .list-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .user-count {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 12px;
+      color: var(--accent);
+    }
+    .user-list { display: flex; flex-direction: column; gap: 8px; }
+    .user-item {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      transition: border-color .2s, transform .15s;
+      animation: fadeIn .3s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+    .user-item:hover { border-color: #3a3a48; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px;
+      color: #0d0d0f; flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; }
+    .user-email { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-id { font-size: 11px; color: var(--muted); margin-right: 4px; }
+    .user-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .empty {
+      text-align: center; padding: 32px 0;
+      color: var(--muted); font-size: 13px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 13px;
+      display: flex; align-items: center; gap: 10px;
+      opacity: 0; transform: translateY(10px);
+      transition: opacity .25s, transform .25s;
+      pointer-events: none;
+      z-index: 100;
+      max-width: 300px;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { border-color: var(--accent); color: var(--accent); }
+    #toast.error { border-color: var(--danger); color: var(--danger); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="tag">API Client</div>
+    <h1>Gerenciador de<br><span>Usuários</span></h1>
+    <p class="subtitle">Consumindo → http://localhost:3000</p>
+  </header>
+
+  <div class="status-bar">
+    <div class="dot" id="dot"></div>
+    <span id="status-text">verificando conexão...</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- GET todos -->
+    <div class="card">
+      <div class="card-title"><span class="method get">GET</span> /usuarios</div>
+      <button class="btn-accent" style="width:100%" onclick="listarUsuarios()">Buscar todos</button>
+    </div>
+
+    <!-- GET por ID -->
+    <div class="card">
+      <div class="card-title"><span class="method get">GET</span> /usuarios/:id</div>
+      <div class="field">
+        <label>ID do usuário</label>
+        <input type="number" id="get-id" placeholder="ex: 1" min="1"/>
+      </div>
+      <button class="btn-accent" style="width:100%" onclick="buscarPorId()">Buscar por ID</button>
+    </div>
+
+    <!-- POST -->
+    <div class="card">
+      <div class="card-title"><span class="method post">POST</span> /usuarios</div>
+      <div class="field">
+        <label>Nome</label>
+        <input type="text" id="post-nome" placeholder="ex: Carlos"/>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="post-email" placeholder="ex: carlos@email.com"/>
+      </div>
+      <button class="btn-blue" style="width:100%;margin-top:4px" onclick="criarUsuario()">Criar usuário</button>
+    </div>
+
+    <!-- PUT -->
+    <div class="card">
+      <div class="card-title"><span class="method put">PUT</span> /usuarios/:id</div>
+      <div class="field">
+        <label>ID</label>
+        <input type="number" id="put-id" placeholder="ex: 1" min="1"/>
+      </div>
+      <div class="field">
+        <label>Novo nome</label>
+        <input type="text" id="put-nome" placeholder="ex: Carlos Lima"/>
+      </div>
+      <div class="field">
+        <label>Novo email</label>
+        <input type="email" id="put-email" placeholder="ex: novo@email.com"/>
+      </div>
+      <button class="btn-warn" style="width:100%;margin-top:4px" onclick="atualizarUsuario()">Atualizar</button>
+    </div>
+
+    <!-- DELETE -->
+    <div class="card">
+      <div class="card-title"><span class="method delete">DELETE</span> /usuarios/:id</div>
+      <div class="field">
+        <label>ID do usuário</label>
+        <input type="number" id="delete-id" placeholder="ex: 2" min="1"/>
+      </div>
+      <button class="btn-danger" style="width:100%" onclick="deletarUsuario()">Deletar usuário</button>
+    </div>
+
+    <!-- Resposta JSON -->
+    <div class="card">
+      <div class="card-title">Resposta da API</div>
+      <pre id="response-box" style="font-size:12px;color:var(--accent);line-height:1.6;white-space:pre-wrap;word-break:break-all;min-height:80px">aguardando...</pre>
+    </div>
+
+    <!-- Lista de usuários -->
+    <div class="card card-full">
+      <div class="list-header">
+        <div class="card-title" style="margin:0">Usuários cadastrados</div>
+        <span class="user-count" id="user-count">0</span>
+      </div>
+      <div class="user-list" id="user-list">
+        <div class="empty">Clique em "Buscar todos" para carregar</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const BASE = 'http://localhost:3000';
+
+async function req(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(BASE + path, opts);
+  const data = await res.json();
+  return { status: res.status, data };
+}
+
+function showResponse(data) {
+  document.getElementById('response-box').textContent = JSON.stringify(data, null, 2);
+}
+
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3000);
+}
+
+async function checkStatus() {
+  const dot = document.getElementById('dot');
+  const txt = document.getElementById('status-text');
+  try {
+    await fetch(BASE + '/usuarios');
+    dot.className = 'dot online';
+    txt.textContent = 'API online · localhost:3000';
+  } catch {
+    dot.className = 'dot error';
+    txt.textContent = 'API offline — rode: node index.js';
+  }
+}
+
+async function listarUsuarios() {
+  try {
+    const { data } = await req('GET', '/usuarios');
+    showResponse(data);
+    renderList(data);
+    toast(`${data.length} usuário(s) carregado(s)`);
+  } catch { toast('Erro ao conectar na API', 'error'); }
+}
+
+async function buscarPorId() {
+  const id = document.getElementById('get-id').value;
+  if (!id) return toast('Informe um ID', 'error');
+  try {
+    const { status, data } = await req('GET', `/usuarios/${id}`);
+    showResponse(data);
+    if (status === 404) toast('Usuário não encontrado', 'error');
+    else toast(`Usuário #${id} encontrado`);
+  } catch { toast('Erro ao conectar na API', 'error'); }
+}
+
+async function criarUsuario() {
+  const nome = document.getElementById('post-nome').value.trim();
+  const email = document.getElementById('post-email').value.trim();
+  if (!nome || !email) return toast('Preencha nome e email', 'error');
+  try {
+    const { data } = await req('POST', '/usuarios', { nome, email });
+    showResponse(data);
+    document.getElementById('post-nome').value = '';
+    document.getElementById('post-email').value = '';
+    toast(`Usuário "${data.nome}" criado!`);
+    listarUsuarios();
+  } catch { toast('Erro ao conectar na API', 'error'); }
+}
+
+async function atualizarUsuario() {
+  const id = document.getElementById('put-id').value;
+  const nome = document.getElementById('put-nome').value.trim();
+  const email = document.getElementById('put-email').value.trim();
+  if (!id) return toast('Informe um ID', 'error');
+  if (!nome && !email) return toast('Informe nome ou email', 'error');
+  const body = {};
+  if (nome) body.nome = nome;
+  if (email) body.email = email;
+  try {
+    const { status, data } = await req('PUT', `/usuarios/${id}`, body);
+    showResponse(data);
+    if (status === 404) toast('Usuário não encontrado', 'error');
+    else { toast(`Usuário #${id} atualizado!`); listarUsuarios(); }
+  } catch { toast('Erro ao conectar na API', 'error'); }
+}
+
+async function deletarUsuario() {
+  const id = document.getElementById('delete-id').value;
+  if (!id) return toast('Informe um ID', 'error');
+  try {
+    const { status, data } = await req('DELETE', `/usuarios/${id}`);
+    showResponse(data);
+    if (status === 404) toast('Usuário não encontrado', 'error');
+    else { toast(`Usuário #${id} deletado`); listarUsuarios(); }
+  } catch { toast('Erro ao conectar na API', 'error'); }
+}
+
+function deletarInline(id) {
+  document.getElementById('delete-id').value = id;
+  deletarUsuario();
+}
+
+function editarInline(id, nome, email) {
+  document.getElementById('put-id').value = id;
+  document.getElementById('put-nome').value = nome;
+  document.getElementById('put-email').value = email;
+  document.getElementById('put-id').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function renderList(usuarios) {
+  const list = document.getElementById('user-list');
+  document.getElementById('user-count').textContent = usuarios.length;
+  if (!usuarios.length) {
+    list.innerHTML = '<div class="empty">Nenhum usuário cadastrado</div>';
+    return;
+  }
+  list.innerHTML = usuarios.map(u => `
+    <div class="user-item">
+      <div class="avatar">${u.nome[0].toUpperCase()}</div>
+      <div class="user-info">
+        <div class="user-name">${u.nome}</div>
+        <div class="user-email">${u.email}</div>
+      </div>
+      <span class="user-id">#${u.id}</span>
+      <div class="user-actions">
+        <button class="btn-ghost" onclick="editarInline(${u.id},'${u.nome}','${u.email}')">editar</button>
+        <button class="btn-ghost" style="border-color:rgba(255,110,110,.3);color:var(--danger)" onclick="deletarInline(${u.id})">del</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+checkStatus();
+setInterval(checkStatus, 10000);
+listarUsuarios();
+</script>
+</body>
+</html>

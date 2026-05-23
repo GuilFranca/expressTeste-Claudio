@@ -2,6 +2,9 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+const cors = require('cors');
+app.use(cors()); // adicione logo após o app.use(express.json())
+
 let usuarios = [
   { id: 1, nome: 'Ana', email: 'ana@email.com' },
   { id: 2, nome: 'Bruno', email: 'bruno@email.com' },
